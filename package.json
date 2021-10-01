@@ -6,6 +6,7 @@
   "scripts": {
     "test": "npm run eslint",
     "eslint": "eslint --ext .js src/",
+    "start.dev": "nodemon ./src/main.js",
     "start": "node ./src/service/service.js"
   },
   "repository": {
@@ -20,6 +21,10 @@
   "homepage": "https://github.com/Svetlana-Gubina/369637-buy-and-sell-3#readme",
   "devDependencies": {
     "eslint": "7.32.0",
-    "eslint-config-htmlacademy": "0.6.0"
+    "eslint-config-htmlacademy": "0.6.0",
+    "nodemon": "2.0.13"
+  },
+  "dependencies": {
+    "chalk": "4.1.2"
   }
 }

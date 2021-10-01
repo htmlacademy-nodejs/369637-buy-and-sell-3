@@ -1,7 +1,7 @@
 "use strict";
 
-const fs = require(`fs`);
-const {ExitCode} = require(`../../constants`);
+const fs = require(`fs`).promises;
+const chalk = require(`chalk`);
 const {
   getRandomInteger,
   shuffle,
@@ -12,44 +12,19 @@ const OVERFLOW_MESSAGE = `Не больше 1000 объявлений`;
 const DEFAULT_COUNT = 1;
 const FILE_NAME = `mocks.json`;
 
-const TITLES = [
-  `Продам книги Стивена Кинга`,
-  `Продам новую приставку Sony Playstation 5`,
-  `Продам отличную подборку фильмов на VHS`,
-  `Куплю антиквариат`,
-  `Куплю породистого кота`,
-  `Продам коллекцию журналов «Огонёк»`,
-  `Отдам в хорошие руки подшивку «Мурзилка»`,
-  `Продам советскую посуду. Почти не разбита`,
-  `Куплю детские санки`,
-];
+const FILE_SENTENCES_PATH = `./data/sentences.txt`;
+const FILE_TITLES_PATH = `./data/titles.txt`;
+const FILE_CATEGORIES_PATH = `./data/categories.txt`;
 
-const SENTENCES = [
-  `Товар в отличном состоянии`,
-  `Пользовались бережно и только по большим праздникам`,
-  `Продаю с болью в сердце...`,
-  `Бонусом отдам все аксессуары`,
-  `Даю недельную гарантию`,
-  `Если товар не понравится — верну всё до последней копейки`,
-  `Это настоящая находка для коллекционера!`,
-  `Если найдёте дешевле — сброшу цену.`,
-  `Таких предложений больше нет!`,
-  `Две страницы заляпаны свежим кофе.`,
-  `При покупке с меня бесплатная доставка в черте города.`,
-  `Кажется, что это хрупкая вещь.`,
-  `Мой дед не мог её сломать.`,
-  `Кому нужен этот новый телефон, если тут такое...`,
-  `Не пытайтесь торговаться. Цену вещам я знаю.`,
-];
-
-const CATEGORIES = [
-  `Книги`,
-  `Разное`,
-  `Посуда`,
-  `Игры`,
-  `Животные`,
-  `Журналы`,
-];
+const readContent = async (filePath) => {
+  try {
+    const content = await fs.readFile(filePath, `utf8`);
+    return content.trim().split(`\n`);
+  } catch (err) {
+    console.error(chalk.red(err));
+    return [];
+  }
+};
 
 const OfferType = {
   OFFER: `offer`,
@@ -67,7 +42,7 @@ const PictureRestrict = {
   MAX: 16,
 };
 
-const genereteMocks = (count) => {
+const genereteMocks = (count, titles, categories, sentences) => {
   if (!count || Number.isNaN(count)) {
     count = DEFAULT_COUNT;
   }
@@ -81,12 +56,12 @@ const genereteMocks = (count) => {
 
   for (let i = 0; i < count; i++) {
     result.push({
-      title: TITLES[getRandomInteger(0, TITLES.length - 1)],
+      title: titles[getRandomInteger(0, titles.length - 1)],
       picture: getPictureFileName(getRandomInteger(PictureRestrict.MIN, PictureRestrict.MAX)),
       type: OfferType[Object.keys(OfferType)[Math.floor(Math.random() * Object.keys(OfferType).length)]],
-      description: shuffle(SENTENCES).slice(1, 5).join(` `),
+      description: shuffle(sentences).slice(1, 5).join(` `),
       sum: getRandomInteger(SumRestrict.MIN, SumRestrict.MAX),
-      category: shuffle(CATEGORIES).slice(0, getRandomInteger(0, CATEGORIES.length - 1)),
+      category: shuffle(categories).slice(0, getRandomInteger(0, categories.length - 1)),
     });
   }
 
@@ -96,19 +71,20 @@ const genereteMocks = (count) => {
 
 module.exports = {
   name: `--generate`,
-  run(args) {
+  async run(args) {
+    const sentences = await readContent(FILE_SENTENCES_PATH);
+    const titles = await readContent(FILE_TITLES_PATH);
+    const categories = await readContent(FILE_CATEGORIES_PATH);
+
     const [count] = args;
     const countOffer = Number.parseInt(count, 10) || DEFAULT_COUNT;
-    const offers = JSON.stringify(genereteMocks(countOffer));
+    const offers = JSON.stringify(genereteMocks(countOffer, titles, categories, sentences));
 
-    fs.writeFile(FILE_NAME, offers, (err) => {
-      if (err) {
-        console.error(`Error!`);
-        process.exit(ExitCode.error);
-      }
-
-      console.info(`Operation success. File created.`);
-      process.exit(ExitCode.success);
-    });
+    try {
+      await fs.writeFile(FILE_NAME, offers);
+      console.info(chalk.green(`Operation success. File created.`));
+    } catch (err) {
+      console.error(chalk.red(err));
+    }
   }
 };
